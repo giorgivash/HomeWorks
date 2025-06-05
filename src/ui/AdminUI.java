@@ -5,6 +5,7 @@ import model.Workspace;
 import service.ReservationService;
 import service.WorkspaceService;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Scanner;
 
@@ -60,7 +61,7 @@ public class AdminUI {
 
         System.out.print("Enter price per hour: ");
         String priceStr = scanner.nextLine();
-        double price = Double.parseDouble(priceStr);
+        BigDecimal price = new BigDecimal(priceStr);
 
         Workspace ws = new Workspace(id, price, true);
         workspaceService.addWorkspace(ws);
