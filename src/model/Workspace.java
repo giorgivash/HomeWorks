@@ -1,11 +1,13 @@
 package model;
 
+import java.math.BigDecimal;
+
 public class Workspace {
     private int ID;
-    private double pricePerHour;
     private boolean isAvailable;
+    private BigDecimal pricePerHour;
 
-    public Workspace(int ID, double pricePerHour, boolean isAvailable){
+    public Workspace(int ID, BigDecimal pricePerHour, boolean isAvailable) {
         this.ID = ID;
         this.pricePerHour = pricePerHour;
         this.isAvailable = isAvailable;
@@ -15,7 +17,7 @@ public class Workspace {
     public void setID(int ID){
         this.ID = ID;
     }
-    public void setPricePerHour(double pricePerHour){
+    public void setPricePerHour(BigDecimal pricePerHour){
         this.pricePerHour = pricePerHour;
     }
     public void setAvailable(boolean isAvailable){
@@ -26,7 +28,7 @@ public class Workspace {
     public int getID(){
         return ID;
     }
-    public double getPricePerHour(){
+    public BigDecimal getPricePerHour(){
         return pricePerHour;
     }
     public boolean isAvailable(){

@@ -1,10 +1,12 @@
 package ui;
 
 import model.Admin;
+import model.Reservation;
 import model.Workspace;
 import service.ReservationService;
 import service.WorkspaceService;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Scanner;
 
@@ -54,39 +56,48 @@ public class AdminUI {
     }
 
     private void addWorkspace() {
-        System.out.print("Enter Workspace ID (integer): ");
-        String idStr = scanner.nextLine();
-        int id = Integer.parseInt(idStr);
+        try {
+            System.out.print("Enter Workspace ID (integer): ");
+            int id = Integer.parseInt(scanner.nextLine());
 
-        System.out.print("Enter price per hour: ");
-        String priceStr = scanner.nextLine();
-        double price = Double.parseDouble(priceStr);
+            System.out.print("Enter price per hour: ");
+            BigDecimal price = new BigDecimal(scanner.nextLine());
 
-        Workspace ws = new Workspace(id, price, true);
-        workspaceService.addWorkspace(ws);
-        System.out.println("Workspace added successfully.");
+            Workspace ws = new Workspace(id, price, true);
+            workspaceService.addWorkspace(ws);
+            System.out.println("Workspace added successfully.");
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid input! Please enter numeric values for ID and price.");
+        } catch (Exception e) {
+            System.out.println("Error occurred while adding workspace: " + e.getMessage());
+        }
     }
 
     private void removeWorkspace() {
-        System.out.print("Enter Workspace ID to remove: ");
-        String idStr = scanner.nextLine();
-        int id = Integer.parseInt(idStr);
+        try {
+            System.out.print("Enter Workspace ID to remove: ");
+            int id = Integer.parseInt(scanner.nextLine());
 
-        boolean removed = workspaceService.removeWorkspaceById(id);
-        if (removed) {
-            System.out.println("Workspace removed.");
-        } else {
-            System.out.println("Workspace with given ID not found.");
+            boolean removed = workspaceService.removeWorkspaceById(id);
+            if (removed) {
+                System.out.println("Workspace removed.");
+            } else {
+                System.out.println("Workspace with given ID not found.");
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid input! Please enter a numeric ID.");
+        } catch (Exception e) {
+            System.out.println("Error occurred while removing workspace: " + e.getMessage());
         }
     }
 
     private void viewReservations() {
         System.out.println("\nAll Reservations:");
-        List<model.Reservation> reservations = reservationService.getAllReservations();
+        List<Reservation> reservations = reservationService.getAllReservations();
         if (reservations.isEmpty()) {
             System.out.println("No reservations found.");
         } else {
-            for (model.Reservation res : reservations) {
+            for (Reservation res : reservations) {
                 System.out.println(res);
                 System.out.println("$$$$$$$$$$$$$$$$$$$$$$");
             }
