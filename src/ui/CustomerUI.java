@@ -2,6 +2,7 @@ package ui;
 
 import model.Customer;
 import model.Reservation;
+import model.ReservationException;
 import model.Workspace;
 import service.ReservationService;
 import service.WorkspaceService;
@@ -65,27 +66,36 @@ public class CustomerUI {
     }
 
     private void makeReservation() {
-        System.out.print("Enter Workspace ID to reserve: ");
-        int wsId = Integer.parseInt(scanner.nextLine());
+        try {
+            System.out.print("Enter Workspace ID to reserve: ");
+            int wsId = Integer.parseInt(scanner.nextLine());
 
-        System.out.print("Enter booking name: ");
-        String bookingName = scanner.nextLine();
+            System.out.print("Enter booking name: ");
+            String bookingName = scanner.nextLine();
 
-        System.out.print("Enter booking date (YYYY-MM-DD): ");
-        String date = scanner.nextLine();
+            System.out.print("Enter booking date (YYYY-MM-DD): ");
+            String date = scanner.nextLine();
 
-        System.out.print("Enter start time (HH:mm): ");
-        String startTime = scanner.nextLine();
+            System.out.print("Enter start time (HH:mm): ");
+            String startTime = scanner.nextLine();
 
-        System.out.print("Enter end time (HH:mm): ");
-        String endTime = scanner.nextLine();
+            System.out.print("Enter end time (HH:mm): ");
+            String endTime = scanner.nextLine();
 
-        boolean success = reservationService.createReservation(customer.getID(), wsId, bookingName, date, startTime, endTime);
+            boolean success = reservationService.createReservation(
+                    customer.getID(), wsId, bookingName, date, startTime, endTime
+            );
 
-        if (success) {
-            System.out.println("Reservation created successfully.");
-        } else {
-            System.out.println("Failed to create reservation. Check if workspace is available.");
+            if (success) {
+                System.out.println("Reservation created successfully.");
+            } else {
+                System.out.println("Failed to create reservation. Check if workspace is available.");
+            }
+
+        } catch (ReservationException e) {
+            System.out.println("Reservation failed: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Error: Invalid input or time format.");
         }
     }
 
