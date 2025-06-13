@@ -19,19 +19,18 @@ public class DataLoader {
 
     public static boolean loadData(WorkspaceService workspaceService, ReservationService reservationService) {
         try {
-            // Load workspaces first
+
             if (!loadWorkspaces(workspaceService)) {
                 System.out.println("Failed to load workspaces. Starting with empty data.");
                 return false;
             }
 
-            // Then load reservations
             if (!loadReservations(workspaceService, reservationService)) {
                 System.out.println("Failed to load reservations. Starting with empty data.");
                 return false;
             }
 
-            return true; // All loaded successfully
+            return true;
         } catch (Exception e) {
             System.out.println("Critical error during data load: " + e.getMessage());
             return false;
@@ -40,7 +39,7 @@ public class DataLoader {
 
     private static boolean loadWorkspaces(WorkspaceService workspaceService) {
         File file = new File(WORKSPACES_FILE);
-        if (!file.exists()) return true; // No file, no problem – just start empty
+        if (!file.exists()) return true;
 
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
@@ -64,7 +63,7 @@ public class DataLoader {
 
     private static boolean loadReservations(WorkspaceService workspaceService, ReservationService reservationService) {
         File file = new File(RESERVATIONS_FILE);
-        if (!file.exists()) return true; // No file, no problem – just start empty
+        if (!file.exists()) return true;
 
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
