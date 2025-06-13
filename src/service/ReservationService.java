@@ -5,7 +5,9 @@ import model.Reservation;
 import model.ReservationException;
 import model.Workspace;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +21,6 @@ public class ReservationService {
 
     public ReservationService(WorkspaceService workspaceService) {
         this.workspaceService = workspaceService;
-        loadReservationsFromFile();
     }
 
     public boolean createReservation(int customerId, int workspaceId, String bookingName,
@@ -64,6 +65,15 @@ public class ReservationService {
         saveReservationsToFile();
 
         return true;
+    }
+
+    public void addReservationFromFile(Reservation reservation) {
+        reservations.add(reservation);
+
+
+        if (reservation.getReservationId() >= nextReservationId) {
+            nextReservationId = reservation.getReservationId() + 1;
+        }
     }
 
     public List<Reservation> getReservationsByCustomerId(int customerId) {
@@ -111,48 +121,6 @@ public class ReservationService {
             }
         } catch (IOException e) {
             System.out.println("Failed to save reservations: " + e.getMessage());
-        }
-    }
-
-    private void loadReservationsFromFile() {
-        File file = new File(RESERVATION_FILE);
-        if (!file.exists()) return;
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",", 6);
-                if (parts.length == 6) {
-                    int reservationId = Integer.parseInt(parts[0]);
-                    int customerId = Integer.parseInt(parts[1]);
-                    String customerName = parts[2];
-                    int workspaceId = Integer.parseInt(parts[3]);
-                    LocalDateTime start = LocalDateTime.parse(parts[4]);
-                    LocalDateTime end = LocalDateTime.parse(parts[5]);
-
-                    Workspace workspace = workspaceService.getWorkspaceById(workspaceId);
-                    if (workspace != null) {
-                        workspace.setAvailable(false);
-
-                        Customer customer = new Customer(customerName, customerId);
-                        Reservation reservation = new Reservation.Builder()
-                                .setId(reservationId)
-                                .setCustomer(customer)
-                                .setWorkspace(workspace)
-                                .setStartTime(start)
-                                .setEndTime(end)
-                                .build();
-
-                        reservations.add(reservation);
-
-                        if (reservationId >= nextReservationId) {
-                            nextReservationId = reservationId + 1;
-                        }
-                    }
-                }
-            }
-        } catch (IOException | NumberFormatException e) {
-            System.out.println("Failed to load reservations: " + e.getMessage());
         }
     }
 }

@@ -12,7 +12,6 @@ public class WorkspaceService {
     private static final String FILE_NAME = "workspaces.txt";
 
     public WorkspaceService() {
-        loadWorkspacesFromFile();
     }
 
     public void addWorkspace(Workspace workspace) {
@@ -54,7 +53,7 @@ public class WorkspaceService {
         return null;
     }
 
-    private void saveWorkspacesToFile() {
+    public void saveWorkspacesToFile() {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
             for (Workspace ws : workspaces) {
                 writer.write(ws.getID() + "," + ws.getPricePerHour() + "," + ws.isAvailable());
@@ -65,7 +64,7 @@ public class WorkspaceService {
         }
     }
 
-    private void loadWorkspacesFromFile() {
+    public void loadWorkspacesFromFile() {
         File file = new File(FILE_NAME);
         if (!file.exists()) return;
 
