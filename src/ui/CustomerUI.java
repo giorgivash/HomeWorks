@@ -1,5 +1,6 @@
 package ui;
 
+import loader.DynamicClassLoader;
 import model.Customer;
 import model.Reservation;
 import model.ReservationException;
@@ -7,6 +8,7 @@ import model.Workspace;
 import service.ReservationService;
 import service.WorkspaceService;
 
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Scanner;
 
@@ -24,6 +26,8 @@ public class CustomerUI {
     }
 
     public void showMenu() {
+        showGreeting();
+
         while (true) {
             System.out.println("\nCustomer Menu:");
             System.out.println("1. Browse available spaces");
@@ -122,6 +126,21 @@ public class CustomerUI {
             System.out.println("Reservation canceled successfully.");
         } else {
             System.out.println("Reservation not found or you do not have permission to cancel it.");
+        }
+    }
+
+
+    private void showGreeting() {
+        try {
+            DynamicClassLoader loader = new DynamicClassLoader("dynamic_classes");
+            Class<?> greetingClass = loader.loadClass("dynamic_classes.Greeting");
+
+            Object instance = greetingClass.getDeclaredConstructor().newInstance();
+            Method greetMethod = greetingClass.getMethod("greet", String.class);
+            greetMethod.invoke(instance, customer.getName());
+
+        } catch (Exception e) {
+            System.out.println("Greeting unavailable: " + e.getMessage());
         }
     }
 }
