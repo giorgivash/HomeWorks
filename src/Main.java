@@ -1,3 +1,4 @@
+import config.DataLoader;
 import model.Admin;
 import model.Customer;
 import service.ReservationService;
@@ -9,10 +10,13 @@ import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
-
         WorkspaceService workspaceService = new WorkspaceService();
         ReservationService reservationService = new ReservationService(workspaceService);
 
+        boolean loaded = DataLoader.loadData(workspaceService, reservationService);
+        if (!loaded) {
+            System.out.println("Failed to load data. Application will start with no data.");
+        }
 
         Admin admin = new Admin("AdminUser", 1);
         Customer customer = new Customer("CustomerUser", 2);
