@@ -4,6 +4,7 @@ import model.*;
 import java.io.*;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ReservationService {
     private final Map<Integer, Reservation> reservationsMap = new HashMap<>();
@@ -18,10 +19,9 @@ public class ReservationService {
 
     public boolean createReservation(int customerId, int workspaceId, String bookingName,
                                      String date, String startTime, String endTime) throws ReservationException {
-        Workspace workspace = workspaceService.getWorkspaceById(workspaceId);
-        if (workspace == null) {
-            throw new ReservationException("Workspace not found with ID: " + workspaceId);
-        }
+        Workspace workspace = workspaceService.getWorkspaceById(workspaceId)
+                .orElseThrow(() -> new ReservationException("Workspace not found with ID: " + workspaceId));
+
         if (!workspace.isAvailable()) {
             throw new ReservationException("Workspace is currently not available.");
         }
@@ -50,38 +50,26 @@ public class ReservationService {
         reservationsByTime.put(start, reservation);
         workspace.setAvailable(false);
         saveReservationsToFile();
-
         return true;
     }
 
-    public void addReservationFromFile(Reservation reservation) {
-        reservationsMap.put(reservation.getReservationId(), reservation);
-        reservationsByTime.put(reservation.getStartTime(), reservation);
-        if (reservation.getReservationId() >= nextReservationId) {
-            nextReservationId = reservation.getReservationId() + 1;
-        }
-    }
-
     public List<Reservation> getReservationsByCustomerId(int customerId) {
-        List<Reservation> result = new ArrayList<>();
-        for (Reservation reservation : reservationsMap.values()) {
-            if (reservation.getCustomer().getID() == customerId) {
-                result.add(reservation);
-            }
-        }
-        return result;
+        return reservationsMap.values().stream()
+                .filter(r -> r.getCustomer().getID() == customerId)
+                .collect(Collectors.toList());
     }
 
     public boolean cancelReservationById(int reservationId, int customerId) {
-        Reservation reservation = reservationsMap.get(reservationId);
-        if (reservation != null && reservation.getCustomer().getID() == customerId) {
-            reservationsMap.remove(reservationId);
-            reservationsByTime.remove(reservation.getStartTime());
-            reservation.getWorkspace().setAvailable(true);
-            saveReservationsToFile();
-            return true;
-        }
-        return false;
+        return Optional.ofNullable(reservationsMap.get(reservationId))
+                .filter(r -> r.getCustomer().getID() == customerId)
+                .map(r -> {
+                    reservationsMap.remove(reservationId);
+                    reservationsByTime.remove(r.getStartTime());
+                    r.getWorkspace().setAvailable(true);
+                    saveReservationsToFile();
+                    return true;
+                })
+                .orElse(false);
     }
 
     public List<Reservation> getAllReservations() {
@@ -90,19 +78,31 @@ public class ReservationService {
 
     private void saveReservationsToFile() {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(RESERVATION_FILE))) {
-            for (Reservation r : reservationsMap.values()) {
-                writer.write(
-                        r.getReservationId() + "," +
-                                r.getCustomer().getID() + "," +
-                                r.getCustomer().getName() + "," +
-                                r.getWorkspace().getID() + "," +
-                                r.getStartTime() + "," +
-                                r.getEndTime()
-                );
-                writer.newLine();
-            }
+            reservationsMap.values().forEach(r -> {
+                try {
+                    writer.write(
+                            r.getReservationId() + "," +
+                                    r.getCustomer().getID() + "," +
+                                    r.getCustomer().getName() + "," +
+                                    r.getWorkspace().getID() + "," +
+                                    r.getStartTime() + "," +
+                                    r.getEndTime()
+                    );
+                    writer.newLine();
+                } catch (IOException e) {
+                    System.out.println("Error writing reservation: " + e.getMessage());
+                }
+            });
         } catch (IOException e) {
             System.out.println("Failed to save reservations: " + e.getMessage());
+        }
+    }
+
+    public void addReservationFromFile(Reservation reservation) {
+        reservationsMap.put(reservation.getReservationId(), reservation);
+        reservationsByTime.put(reservation.getStartTime(), reservation);
+        if (reservation.getReservationId() >= nextReservationId) {
+            nextReservationId = reservation.getReservationId() + 1;
         }
     }
 }

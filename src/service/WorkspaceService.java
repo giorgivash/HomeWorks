@@ -1,10 +1,10 @@
 package service;
 
 import model.Workspace;
-
 import java.io.*;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class WorkspaceService {
     private final Map<Integer, Workspace> workspacesMap = new HashMap<>();
@@ -34,34 +34,32 @@ public class WorkspaceService {
     }
 
     public List<Workspace> getAvailableWorkspaces() {
-        List<Workspace> available = new ArrayList<>();
-        for (Workspace ws : workspacesMap.values()) {
-            if (ws.isAvailable()) {
-                available.add(ws);
-            }
-        }
-        return available;
+        return workspacesMap.values().stream()
+                .filter(Workspace::isAvailable)
+                .collect(Collectors.toList());
     }
 
-    public Workspace getWorkspaceById(int workspaceId) {
-        return workspacesMap.get(workspaceId);
+    public Optional<Workspace> getWorkspaceById(int workspaceId) {
+        return Optional.ofNullable(workspacesMap.get(workspaceId));
     }
 
     public Workspace getCheapestAvailableWorkspace() {
-        for (Workspace ws : workspacesByPrice) {
-            if (ws.isAvailable()) {
-                return ws;
-            }
-        }
-        return null;
+        return workspacesByPrice.stream()
+                .filter(Workspace::isAvailable)
+                .findFirst()
+                .orElse(null);
     }
 
     public void saveWorkspacesToFile() {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
-            for (Workspace ws : workspacesMap.values()) {
-                writer.write(ws.getID() + "," + ws.getPricePerHour() + "," + ws.isAvailable());
-                writer.newLine();
-            }
+            workspacesMap.values().forEach(ws -> {
+                try {
+                    writer.write(ws.getID() + "," + ws.getPricePerHour() + "," + ws.isAvailable());
+                    writer.newLine();
+                } catch (IOException e) {
+                    System.err.println("Error writing workspace: " + e.getMessage());
+                }
+            });
         } catch (IOException e) {
             System.err.println("Error saving workspaces to file: " + e.getMessage());
         }
@@ -72,18 +70,17 @@ public class WorkspaceService {
         if (!file.exists()) return;
 
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length == 3) {
-                    int id = Integer.parseInt(parts[0]);
-                    BigDecimal price = new BigDecimal(parts[1]);
-                    boolean available = Boolean.parseBoolean(parts[2]);
-                    Workspace ws = new Workspace(id, price, available);
-                    workspacesMap.put(id, ws);
-                    workspacesByPrice.add(ws);
-                }
-            }
+            reader.lines()
+                    .map(line -> line.split(","))
+                    .filter(parts -> parts.length == 3)
+                    .forEach(parts -> {
+                        int id = Integer.parseInt(parts[0]);
+                        BigDecimal price = new BigDecimal(parts[1]);
+                        boolean available = Boolean.parseBoolean(parts[2]);
+                        Workspace ws = new Workspace(id, price, available);
+                        workspacesMap.put(id, ws);
+                        workspacesByPrice.add(ws);
+                    });
         } catch (IOException | NumberFormatException e) {
             System.err.println("Error loading workspaces from file: " + e.getMessage());
         }
