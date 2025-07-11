@@ -4,39 +4,38 @@ import model.Workspace;
 
 import java.io.*;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class WorkspaceService {
-    private final List<Workspace> workspaces = new ArrayList<>();
+    private final Map<Integer, Workspace> workspacesMap = new HashMap<>();
+    private final PriorityQueue<Workspace> workspacesByPrice = new PriorityQueue<>(
+            Comparator.comparing(Workspace::getPricePerHour)
+    );
     private static final String FILE_NAME = "workspaces.txt";
 
-    public WorkspaceService() {
-    }
-
     public void addWorkspace(Workspace workspace) {
-        workspaces.add(workspace);
+        workspacesMap.put(workspace.getID(), workspace);
+        workspacesByPrice.add(workspace);
         saveWorkspacesToFile();
     }
 
     public boolean removeWorkspaceById(int id) {
-        for (Workspace ws : workspaces) {
-            if (ws.getID() == id) {
-                workspaces.remove(ws);
-                saveWorkspacesToFile();
-                return true;
-            }
+        Workspace removed = workspacesMap.remove(id);
+        if (removed != null) {
+            workspacesByPrice.remove(removed);
+            saveWorkspacesToFile();
+            return true;
         }
         return false;
     }
 
     public List<Workspace> getAllWorkspaces() {
-        return new ArrayList<>(workspaces);
+        return new ArrayList<>(workspacesMap.values());
     }
 
     public List<Workspace> getAvailableWorkspaces() {
         List<Workspace> available = new ArrayList<>();
-        for (Workspace ws : workspaces) {
+        for (Workspace ws : workspacesMap.values()) {
             if (ws.isAvailable()) {
                 available.add(ws);
             }
@@ -45,9 +44,13 @@ public class WorkspaceService {
     }
 
     public Workspace getWorkspaceById(int workspaceId) {
-        for (Workspace workspace : workspaces) {
-            if (workspace.getID() == workspaceId) {
-                return workspace;
+        return workspacesMap.get(workspaceId);
+    }
+
+    public Workspace getCheapestAvailableWorkspace() {
+        for (Workspace ws : workspacesByPrice) {
+            if (ws.isAvailable()) {
+                return ws;
             }
         }
         return null;
@@ -55,7 +58,7 @@ public class WorkspaceService {
 
     public void saveWorkspacesToFile() {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
-            for (Workspace ws : workspaces) {
+            for (Workspace ws : workspacesMap.values()) {
                 writer.write(ws.getID() + "," + ws.getPricePerHour() + "," + ws.isAvailable());
                 writer.newLine();
             }
@@ -76,7 +79,9 @@ public class WorkspaceService {
                     int id = Integer.parseInt(parts[0]);
                     BigDecimal price = new BigDecimal(parts[1]);
                     boolean available = Boolean.parseBoolean(parts[2]);
-                    workspaces.add(new Workspace(id, price, available));
+                    Workspace ws = new Workspace(id, price, available);
+                    workspacesMap.put(id, ws);
+                    workspacesByPrice.add(ws);
                 }
             }
         } catch (IOException | NumberFormatException e) {

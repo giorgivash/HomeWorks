@@ -1,6 +1,8 @@
 package model;
 
 
+import java.util.Objects;
+
 public abstract class User {
     protected String name;
     protected int ID;
@@ -33,6 +35,18 @@ public abstract class User {
         return    "ID = " + ID + "\n"
                 + "name = " + name + "\n"
                 + "Role = " + this.getClass().getSimpleName();
+    }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        User user = (User) o;
+        return ID == user.ID;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(ID);
     }
 
 
