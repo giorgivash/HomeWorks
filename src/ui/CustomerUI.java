@@ -1,16 +1,11 @@
 package ui;
 
 import loader.DynamicClassLoader;
-import model.Customer;
-import model.Reservation;
-import model.ReservationException;
-import model.Workspace;
-import service.ReservationService;
-import service.WorkspaceService;
-
+import model.*;
+import service.*;
 import java.lang.reflect.Method;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class CustomerUI {
     private final WorkspaceService workspaceService;
@@ -25,9 +20,32 @@ public class CustomerUI {
         this.scanner = new Scanner(System.in);
     }
 
+    private void browseAvailableSpaces() {
+        System.out.println("\nAvailable Workspaces:");
+        workspaceService.getAvailableWorkspaces().stream()
+                .peek(System.out::println)
+                .collect(Collectors.toList())
+                .forEach(ws -> System.out.println("--------------------"));
+
+        if (workspaceService.getAvailableWorkspaces().isEmpty()) {
+            System.out.println("No available workspaces right now.");
+        }
+    }
+
+    private void viewMyReservations() {
+        System.out.println("\nYour Reservations:");
+        reservationService.getReservationsByCustomerId(customer.getID()).stream()
+                .peek(System.out::println)
+                .collect(Collectors.toList())
+                .forEach(res -> System.out.println("--------------------"));
+
+        if (reservationService.getReservationsByCustomerId(customer.getID()).isEmpty()) {
+            System.out.println("You have no reservations.");
+        }
+    }
+
     public void showMenu() {
         showGreeting();
-
         while (true) {
             System.out.println("\nCustomer Menu:");
             System.out.println("1. Browse available spaces");
@@ -36,18 +54,13 @@ public class CustomerUI {
             System.out.println("4. Cancel a reservation");
             System.out.println("5. Logout");
 
-            System.out.print("Enter your choice: ");
             String choice = scanner.nextLine();
 
-            if (choice.equals("1")) {
-                browseAvailableSpaces();
-            } else if (choice.equals("2")) {
-                makeReservation();
-            } else if (choice.equals("3")) {
-                viewMyReservations();
-            } else if (choice.equals("4")) {
-                cancelReservation();
-            } else if (choice.equals("5")) {
+            if (choice.equals("1")) browseAvailableSpaces();
+            else if (choice.equals("2")) makeReservation();
+            else if (choice.equals("3")) viewMyReservations();
+            else if (choice.equals("4")) cancelReservation();
+            else if (choice.equals("5")) {
                 System.out.println("Logging out...");
                 break;
             } else {
@@ -56,89 +69,42 @@ public class CustomerUI {
         }
     }
 
-    private void browseAvailableSpaces() {
-        System.out.println("\nAvailable Workspaces:");
-        List<Workspace> availableSpaces = workspaceService.getAvailableWorkspaces();
-        if (availableSpaces.isEmpty()) {
-            System.out.println("No available workspaces right now.");
-        } else {
-            for (Workspace ws : availableSpaces) {
-                System.out.println(ws);
-                System.out.println("--------------------");
-            }
-        }
-    }
-
     private void makeReservation() {
         try {
             System.out.print("Enter Workspace ID to reserve: ");
             int wsId = Integer.parseInt(scanner.nextLine());
-
             System.out.print("Enter booking name: ");
             String bookingName = scanner.nextLine();
-
             System.out.print("Enter booking date (YYYY-MM-DD): ");
             String date = scanner.nextLine();
-
             System.out.print("Enter start time (HH:mm): ");
             String startTime = scanner.nextLine();
-
             System.out.print("Enter end time (HH:mm): ");
             String endTime = scanner.nextLine();
 
             boolean success = reservationService.createReservation(
-                    customer.getID(), wsId, bookingName, date, startTime, endTime
-            );
+                    customer.getID(), wsId, bookingName, date, startTime, endTime);
 
-            if (success) {
-                System.out.println("Reservation created successfully.");
-            } else {
-                System.out.println("Failed to create reservation. Check if workspace is available.");
-            }
-
-        } catch (ReservationException e) {
-            System.out.println("Reservation failed: " + e.getMessage());
+            System.out.println(success ? "Reservation created successfully." : "Failed to create reservation.");
         } catch (Exception e) {
-            System.out.println("Error: Invalid input or time format.");
-        }
-    }
-
-    private void viewMyReservations() {
-        System.out.println("\nYour Reservations:");
-        List<Reservation> myReservations = reservationService.getReservationsByCustomerId(customer.getID());
-        if (myReservations.isEmpty()) {
-            System.out.println("You have no reservations.");
-        } else {
-            for (Reservation res : myReservations) {
-                System.out.println(res);
-                System.out.println("--------------------");
-            }
+            System.out.println("Error: " + e.getMessage());
         }
     }
 
     private void cancelReservation() {
         System.out.print("Enter Reservation ID to cancel: ");
         int resId = Integer.parseInt(scanner.nextLine());
-
         boolean canceled = reservationService.cancelReservationById(resId, customer.getID());
-
-        if (canceled) {
-            System.out.println("Reservation canceled successfully.");
-        } else {
-            System.out.println("Reservation not found or you do not have permission to cancel it.");
-        }
+        System.out.println(canceled ? "Reservation canceled successfully." : "Failed to cancel reservation.");
     }
-
 
     private void showGreeting() {
         try {
             DynamicClassLoader loader = new DynamicClassLoader("dynamic_classes");
             Class<?> greetingClass = loader.loadClass("dynamic_classes.Greeting");
-
             Object instance = greetingClass.getDeclaredConstructor().newInstance();
             Method greetMethod = greetingClass.getMethod("greet", String.class);
             greetMethod.invoke(instance, customer.getName());
-
         } catch (Exception e) {
             System.out.println("Greeting unavailable: " + e.getMessage());
         }
