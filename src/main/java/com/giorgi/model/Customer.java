@@ -1,9 +1,9 @@
-package model;
+package com.giorgi.model;
 
 public class Customer extends User{
 
-    public Customer(String name, int ID){
-        super(name, ID);
+    public Customer(String name, int id){
+        super(name, id);
     }
 
     public void showMenu(){

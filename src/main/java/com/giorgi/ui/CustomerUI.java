@@ -1,8 +1,8 @@
-package ui;
+package com.giorgi.ui;
 
-import loader.DynamicClassLoader;
-import model.*;
-import service.*;
+import com.giorgi.loader.DynamicClassLoader;
+import com.giorgi.model.*;
+import com.giorgi.service.*;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -34,12 +34,12 @@ public class CustomerUI {
 
     private void viewMyReservations() {
         System.out.println("\nYour Reservations:");
-        reservationService.getReservationsByCustomerId(customer.getID()).stream()
+        reservationService.getReservationsByCustomerId(customer.getId()).stream()
                 .peek(System.out::println)
                 .collect(Collectors.toList())
                 .forEach(res -> System.out.println("--------------------"));
 
-        if (reservationService.getReservationsByCustomerId(customer.getID()).isEmpty()) {
+        if (reservationService.getReservationsByCustomerId(customer.getId()).isEmpty()) {
             System.out.println("You have no reservations.");
         }
     }
@@ -83,7 +83,7 @@ public class CustomerUI {
             String endTime = scanner.nextLine();
 
             boolean success = reservationService.createReservation(
-                    customer.getID(), wsId, bookingName, date, startTime, endTime);
+                    customer.getId(), wsId, bookingName, date, startTime, endTime);
 
             System.out.println(success ? "Reservation created successfully." : "Failed to create reservation.");
         } catch (Exception e) {
@@ -94,7 +94,7 @@ public class CustomerUI {
     private void cancelReservation() {
         System.out.print("Enter Reservation ID to cancel: ");
         int resId = Integer.parseInt(scanner.nextLine());
-        boolean canceled = reservationService.cancelReservationById(resId, customer.getID());
+        boolean canceled = reservationService.cancelReservationById(resId, customer.getId());
         System.out.println(canceled ? "Reservation canceled successfully." : "Failed to cancel reservation.");
     }
 

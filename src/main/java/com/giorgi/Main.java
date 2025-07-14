@@ -1,11 +1,12 @@
-import config.DataLoader;
-import model.Admin;
-import model.Customer;
-import service.ReservationService;
-import service.WorkspaceService;
-import ui.AdminUI;
-import ui.CustomerUI;
+package com.giorgi;
 
+import com.giorgi.config.DataLoader;
+import com.giorgi.model.Admin;
+import com.giorgi.model.Customer;
+import com.giorgi.service.ReservationService;
+import com.giorgi.service.WorkspaceService;
+import com.giorgi.ui.AdminUI;
+import com.giorgi.ui.CustomerUI;
 import java.util.Scanner;
 
 public class Main {

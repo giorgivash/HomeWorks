@@ -1,11 +1,10 @@
-package config;
+package com.giorgi.config;
 
-import model.Workspace;
-import model.Reservation;
-import model.Customer;
-import model.ReservationException;
-import service.ReservationService;
-import service.WorkspaceService;
+import com.giorgi.model.Customer;
+import com.giorgi.model.Reservation;
+import com.giorgi.model.Workspace;
+import com.giorgi.service.ReservationService;
+import com.giorgi.service.WorkspaceService;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -14,12 +13,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class DataLoader {
-    private static final String WORKSPACES_FILE = "workspaces.txt";
-    private static final String RESERVATIONS_FILE = "reservations.txt";
+    private static final String WORKSPACES_FILE = "src/main/resources/workspaces.txt";
+    private static final String RESERVATIONS_FILE = "src/main/resources/reservations.txt";
 
     public static boolean loadData(WorkspaceService workspaceService, ReservationService reservationService) {
         try {
-
             if (!loadWorkspaces(workspaceService)) {
                 System.out.println("Failed to load workspaces. Starting with empty data.");
                 return false;
@@ -77,10 +75,8 @@ public class DataLoader {
                     LocalDateTime start = LocalDateTime.parse(parts[4]);
                     LocalDateTime end = LocalDateTime.parse(parts[5]);
 
-                    Workspace workspace = workspaceService.getWorkspaceById(workspaceId);
-                    if (workspace == null) {
-                        throw new RuntimeException("Reservation refers to missing workspace ID: " + workspaceId);
-                    }
+                    Workspace workspace = workspaceService.getWorkspaceById(workspaceId)
+                            .orElseThrow(() -> new RuntimeException("Reservation refers to missing workspace ID: " + workspaceId));
 
                     Customer customer = new Customer(customerName, customerId);
                     Reservation reservation = new Reservation.Builder()

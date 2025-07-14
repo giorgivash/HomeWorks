@@ -1,4 +1,4 @@
-package model;
+package com.giorgi.model;
 
 import java.time.LocalDateTime;
 
@@ -43,7 +43,7 @@ public class Reservation {
     public String toString() {
         return "Reservation ID: " + reservationId + "\n" +
                 "Customer: " + customer.getName() + "\n" +
-                "Workspace ID: " + workspace.getID() + "\n" +
+                "Workspace ID: " + workspace.getId() + "\n" +
                 "Start: " + startTime + "\n" +
                 "End: " + endTime;
     }

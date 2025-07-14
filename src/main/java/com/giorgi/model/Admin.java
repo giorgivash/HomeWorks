@@ -1,9 +1,9 @@
-package model;
+package com.giorgi.model;
 
 public class Admin extends User {
 
-    public Admin(String name, int ID){
-        super(name, ID);
+    public Admin(String name, int id){
+        super(name, id);
     }
 
 

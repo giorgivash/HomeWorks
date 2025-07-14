@@ -1,6 +1,6 @@
-package service;
+package com.giorgi.service;
 
-import model.Workspace;
+import com.giorgi.model.Workspace;
 import java.io.*;
 import java.math.BigDecimal;
 import java.util.*;
@@ -14,7 +14,7 @@ public class WorkspaceService {
     private static final String FILE_NAME = "workspaces.txt";
 
     public void addWorkspace(Workspace workspace) {
-        workspacesMap.put(workspace.getID(), workspace);
+        workspacesMap.put(workspace.getId(), workspace);
         workspacesByPrice.add(workspace);
         saveWorkspacesToFile();
     }
@@ -54,7 +54,7 @@ public class WorkspaceService {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
             workspacesMap.values().forEach(ws -> {
                 try {
-                    writer.write(ws.getID() + "," + ws.getPricePerHour() + "," + ws.isAvailable());
+                    writer.write(ws.getId() + "," + ws.getPricePerHour() + "," + ws.isAvailable());
                     writer.newLine();
                 } catch (IOException e) {
                     System.err.println("Error writing workspace: " + e.getMessage());

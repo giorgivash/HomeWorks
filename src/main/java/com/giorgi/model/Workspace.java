@@ -1,21 +1,21 @@
-package model;
+package com.giorgi.model;
 
 import java.math.BigDecimal;
 
 public class Workspace {
-    private int ID;
+    private int id;
     private boolean isAvailable;
     private BigDecimal pricePerHour;
 
     public Workspace(int ID, BigDecimal pricePerHour, boolean isAvailable) {
-        this.ID = ID;
+        this.id = ID;
         this.pricePerHour = pricePerHour;
         this.isAvailable = isAvailable;
     }
 
 
-    public void setID(int ID){
-        this.ID = ID;
+    public void setId(int id){
+        this.id = id;
     }
     public void setPricePerHour(BigDecimal pricePerHour){
         this.pricePerHour = pricePerHour;
@@ -25,8 +25,8 @@ public class Workspace {
     }
 
 
-    public int getID(){
-        return ID;
+    public int getId(){
+        return id;
     }
     public BigDecimal getPricePerHour(){
         return pricePerHour;
@@ -38,7 +38,7 @@ public class Workspace {
 
     @Override
     public String toString() {
-        return  "Workspace ID: " + ID + "\n" +
+        return  "Workspace ID: " + id + "\n" +
                 "Price per hour: $" + pricePerHour + "\n" +
                 "Available: " + (isAvailable ? "Yes" : "No");
     }

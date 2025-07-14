@@ -1,10 +1,9 @@
-package ui;
+package com.giorgi.ui;
 
-import model.Admin;
-import model.Reservation;
-import model.Workspace;
-import service.ReservationService;
-import service.WorkspaceService;
+import com.giorgi.model.*;
+import com.giorgi.service.ReservationService;
+import com.giorgi.service.WorkspaceService;
+
 
 import java.math.BigDecimal;
 import java.util.List;

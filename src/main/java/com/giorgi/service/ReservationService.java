@@ -1,6 +1,6 @@
-package service;
+package com.giorgi.service;
 
-import model.*;
+import com.giorgi.model.*;
 import java.io.*;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -55,13 +55,13 @@ public class ReservationService {
 
     public List<Reservation> getReservationsByCustomerId(int customerId) {
         return reservationsMap.values().stream()
-                .filter(r -> r.getCustomer().getID() == customerId)
+                .filter(r -> r.getCustomer().getId() == customerId)
                 .collect(Collectors.toList());
     }
 
     public boolean cancelReservationById(int reservationId, int customerId) {
         return Optional.ofNullable(reservationsMap.get(reservationId))
-                .filter(r -> r.getCustomer().getID() == customerId)
+                .filter(r -> r.getCustomer().getId() == customerId)
                 .map(r -> {
                     reservationsMap.remove(reservationId);
                     reservationsByTime.remove(r.getStartTime());
@@ -82,9 +82,9 @@ public class ReservationService {
                 try {
                     writer.write(
                             r.getReservationId() + "," +
-                                    r.getCustomer().getID() + "," +
+                                    r.getCustomer().getId() + "," +
                                     r.getCustomer().getName() + "," +
-                                    r.getWorkspace().getID() + "," +
+                                    r.getWorkspace().getId() + "," +
                                     r.getStartTime() + "," +
                                     r.getEndTime()
                     );

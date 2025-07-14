@@ -1,4 +1,4 @@
-package loader;
+package com.giorgi.loader;
 
 import java.io.File;
 import java.io.FileInputStream;
