@@ -1,15 +1,12 @@
 package com.giorgi.service;
 
-import com.giorgi.config.DBConnector;
-import com.giorgi.model.Customer;
-import com.giorgi.model.Reservation;
-import com.giorgi.model.Workspace;
-import com.giorgi.model.ReservationException;
-
-import java.sql.*;
+import com.giorgi.config.JPAUtil;
+import com.giorgi.model.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.*;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ReservationService {
     private final WorkspaceService workspaceService;
@@ -18,189 +15,122 @@ public class ReservationService {
         this.workspaceService = workspaceService;
     }
 
-    public boolean createReservation(int customerId, int workspaceId, String bookingName,
-                                     String date, String startTime, String endTime) throws ReservationException {
-        Workspace workspace = workspaceService.getWorkspaceById(workspaceId)
-                .orElseThrow(() -> new ReservationException("Workspace not found with ID: " + workspaceId));
+    public boolean createReservation(Customer customer, Workspace workspace,
+                                     LocalDateTime start, LocalDateTime end) throws ReservationException {
+        EntityManager em = JPAUtil.getEntityManager();
+        try {
+            em.getTransaction().begin();
 
-        if (!workspace.isAvailable()) {
-            throw new ReservationException("Workspace is not available.");
-        }
+            // Reattach entities to current persistence context
+            Customer managedCustomer = em.merge(customer);
+            Workspace managedWorkspace = em.merge(workspace);
 
-        LocalDateTime start = LocalDateTime.parse(date + "T" + startTime);
-        LocalDateTime end = LocalDateTime.parse(date + "T" + endTime);
-
-        if (!end.isAfter(start)) {
-            throw new ReservationException("End time must be after start time.");
-        }
-
-        if (reservationExistsInDB(workspaceId, start, end)) {
-            throw new ReservationException("Time slot conflicts with existing reservation.");
-        }
-
-        try (Connection conn = DBConnector.getConnection()) {
-            conn.setAutoCommit(false);
-
-            // insert customer if not exists
-            String customerInsert = "INSERT INTO customers (id, name) VALUES (?, ?) ON CONFLICT (id) DO NOTHING";
-            try (PreparedStatement ps = conn.prepareStatement(customerInsert)) {
-                ps.setInt(1, customerId);
-                ps.setString(2, bookingName);
-                ps.executeUpdate();
+            if (!managedWorkspace.isAvailable()) {
+                throw new ReservationException("Workspace is not available.");
             }
 
-            // insert reservation
-            String insertSQL = """
-                    INSERT INTO reservations (id, customer_id, workspace_id, start_time, end_time)
-                    VALUES (DEFAULT, ?, ?, ?, ?) RETURNING id
-                    """;
-
-            int reservationId;
-            try (PreparedStatement ps = conn.prepareStatement(insertSQL)) {
-                ps.setInt(1, customerId);
-                ps.setInt(2, workspaceId);
-                ps.setTimestamp(3, Timestamp.valueOf(start));
-                ps.setTimestamp(4, Timestamp.valueOf(end));
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    reservationId = rs.getInt("id");
-                } else {
-                    conn.rollback();
-                    throw new ReservationException("Failed to create reservation.");
-                }
+            if (!end.isAfter(start)) {
+                throw new ReservationException("End time must be after start time.");
             }
 
-            // update workspace availability
-            String updateWorkspace = "UPDATE workspaces SET available = false WHERE id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(updateWorkspace)) {
-                ps.setInt(1, workspaceId);
-                ps.executeUpdate();
+            if (reservationExists(managedWorkspace, start, end)) {
+                throw new ReservationException("Time slot conflicts with existing reservation.");
             }
 
-            conn.commit();
+            Reservation reservation = new Reservation.Builder()
+                    .setCustomer(managedCustomer)
+                    .setWorkspace(managedWorkspace)
+                    .setStartTime(start)
+                    .setEndTime(end)
+                    .build();
+
+            em.persist(reservation);
+            managedWorkspace.setAvailable(false);
+            em.merge(managedWorkspace);
+
+            em.getTransaction().commit();
             return true;
-        } catch (SQLException e) {
-            throw new ReservationException("DB error: " + e.getMessage());
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw new ReservationException("Error creating reservation: " + e.getMessage());
+        } finally {
+            em.close();
         }
     }
 
-    public List<Reservation> getReservationsByCustomerId(int customerId) {
-        List<Reservation> reservations = new ArrayList<>();
-        String query = """
-                SELECT r.id, r.workspace_id, r.start_time, r.end_time, c.name
-                FROM reservations r
-                JOIN customers c ON r.customer_id = c.id
-                WHERE c.id = ?
-                """;
-
-        try (Connection conn = DBConnector.getConnection();
-             PreparedStatement ps = conn.prepareStatement(query)) {
-            ps.setInt(1, customerId);
-            ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
-                reservations.add(mapRowToReservation(rs, customerId));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+    public List<Reservation> getReservationsByCustomerId(Integer customerId) {
+        EntityManager em = JPAUtil.getEntityManager();
+        try {
+            TypedQuery<Reservation> query = em.createQuery(
+                    "SELECT r FROM Reservation r WHERE r.customer.id = :customerId", Reservation.class);
+            query.setParameter("customerId", customerId);
+            return query.getResultList();
+        } finally {
+            em.close();
         }
-        return reservations;
     }
 
-    public boolean cancelReservationById(int reservationId, int customerId) {
-        String selectSQL = "SELECT workspace_id FROM reservations WHERE id = ? AND customer_id = ?";
-        String deleteSQL = "DELETE FROM reservations WHERE id = ?";
-        String updateWorkspace = "UPDATE workspaces SET available = true WHERE id = ?";
+    public boolean cancelReservationById(Integer reservationId) {
+        EntityManager em = JPAUtil.getEntityManager();
+        try {
+            em.getTransaction().begin();
 
-        try (Connection conn = DBConnector.getConnection()) {
-            conn.setAutoCommit(false);
-
-            int workspaceId = -1;
-            try (PreparedStatement ps = conn.prepareStatement(selectSQL)) {
-                ps.setInt(1, reservationId);
-                ps.setInt(2, customerId);
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    workspaceId = rs.getInt("workspace_id");
-                } else {
-                    return false;
-                }
+            Reservation reservation = em.find(Reservation.class, reservationId);
+            if (reservation == null) {
+                return false;
             }
 
-            try (PreparedStatement ps = conn.prepareStatement(deleteSQL)) {
-                ps.setInt(1, reservationId);
-                ps.executeUpdate();
-            }
+            Workspace workspace = em.merge(reservation.getWorkspace());
+            workspace.setAvailable(true);
 
-            try (PreparedStatement ps = conn.prepareStatement(updateWorkspace)) {
-                ps.setInt(1, workspaceId);
-                ps.executeUpdate();
-            }
+            em.remove(reservation);
+            em.merge(workspace);
 
-            conn.commit();
+            em.getTransaction().commit();
             return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            if (em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
             return false;
+        } finally {
+            em.close();
         }
     }
 
     public List<Reservation> getAllReservations() {
-        List<Reservation> reservations = new ArrayList<>();
-        String query = """
-                SELECT r.id, r.customer_id, c.name, r.workspace_id, r.start_time, r.end_time
-                FROM reservations r
-                JOIN customers c ON r.customer_id = c.id
-                """;
-
-        try (Connection conn = DBConnector.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
-            while (rs.next()) {
-                int customerId = rs.getInt("customer_id");
-                reservations.add(mapRowToReservation(rs, customerId));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        EntityManager em = JPAUtil.getEntityManager();
+        try {
+            TypedQuery<Reservation> query = em.createQuery(
+                    "SELECT r FROM Reservation r", Reservation.class);
+            return query.getResultList();
+        } finally {
+            em.close();
         }
-        return reservations;
     }
 
-    private Reservation mapRowToReservation(ResultSet rs, int customerId) throws SQLException {
-        int reservationId = rs.getInt("id");
-        String customerName = rs.getString("name");
-        int workspaceId = rs.getInt("workspace_id");
-        LocalDateTime start = rs.getTimestamp("start_time").toLocalDateTime();
-        LocalDateTime end = rs.getTimestamp("end_time").toLocalDateTime();
+    private boolean reservationExists(Workspace workspace, LocalDateTime start, LocalDateTime end) {
+        EntityManager em = JPAUtil.getEntityManager();
+        try {
+            CriteriaBuilder cb = em.getCriteriaBuilder();
+            CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+            Root<Reservation> root = cq.from(Reservation.class);
 
-        Workspace workspace = workspaceService.getWorkspaceById(workspaceId)
-                .orElse(new Workspace(workspaceId, null, false));
-        Customer customer = new Customer(customerName, customerId);
+            Predicate workspacePredicate = cb.equal(root.get("workspace"), workspace);
+            Predicate overlapPredicate = cb.and(
+                    cb.lessThan(root.get("startTime"), end),
+                    cb.greaterThan(root.get("endTime"), start)
+            );
 
-        return new Reservation.Builder()
-                .setId(reservationId)
-                .setCustomer(customer)
-                .setWorkspace(workspace)
-                .setStartTime(start)
-                .setEndTime(end)
-                .build();
-    }
+            cq.select(cb.count(root))
+                    .where(cb.and(workspacePredicate, overlapPredicate));
 
-    private boolean reservationExistsInDB(int workspaceId, LocalDateTime start, LocalDateTime end) {
-        String query = """
-                SELECT 1 FROM reservations
-                WHERE workspace_id = ?
-                AND (start_time, end_time) OVERLAPS (?, ?)
-                """;
-        try (Connection conn = DBConnector.getConnection();
-             PreparedStatement ps = conn.prepareStatement(query)) {
-            ps.setInt(1, workspaceId);
-            ps.setTimestamp(2, Timestamp.valueOf(start));
-            ps.setTimestamp(3, Timestamp.valueOf(end));
-            ResultSet rs = ps.executeQuery();
-            return rs.next();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return true;
+            Long count = em.createQuery(cq).getSingleResult();
+            return count > 0;
+        } finally {
+            em.close();
         }
     }
 }
