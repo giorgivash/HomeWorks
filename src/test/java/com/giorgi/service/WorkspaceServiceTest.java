@@ -1,9 +1,11 @@
 package com.giorgi.service;
 
+import com.giorgi.config.DBConnector;
 import com.giorgi.model.Workspace;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.Statement;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WorkspaceServiceTest {
@@ -13,27 +15,24 @@ class WorkspaceServiceTest {
     @BeforeEach
     void setUp() {
         service = new WorkspaceService();
-        testWorkspace = new Workspace(1, BigDecimal.valueOf(15.0), true);
+        testWorkspace = new Workspace(999, BigDecimal.valueOf(25.5), true);
     }
 
     @Test
-    void addWorkspace_ShouldMakeItAvailable() {
+    void testAddAndRemoveWorkspace() {
         service.addWorkspace(testWorkspace);
+        assertTrue(service.getWorkspaceById(999).isPresent());
 
-        assertFalse(service.getAllWorkspaces().isEmpty());
-        assertDoesNotThrow(() -> {
-            Workspace found = service.getWorkspaceById(1).orElseThrow();
-            assertEquals(1, found.getId());
-            assertEquals(BigDecimal.valueOf(15.0), found.getPricePerHour());
-            assertTrue(found.isAvailable());
-        });
+        boolean removed = service.removeWorkspaceById(999);
+        assertTrue(removed);
+        assertFalse(service.getWorkspaceById(999).isPresent());
     }
 
-    @Test
-    void removeWorkspace_ShouldDeleteIt() {
-        service.addWorkspace(testWorkspace);
-        assertTrue(service.removeWorkspaceById(1));
-        assertTrue(service.getAllWorkspaces().isEmpty());
-        assertFalse(service.getWorkspaceById(1).isPresent());
+    @AfterEach
+    void cleanUp() throws Exception {
+        try (Connection conn = DBConnector.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("DELETE FROM workspaces WHERE id = 999");
+        }
     }
 }

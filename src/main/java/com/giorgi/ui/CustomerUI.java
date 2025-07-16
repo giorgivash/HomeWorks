@@ -100,13 +100,19 @@ public class CustomerUI {
 
     private void showGreeting() {
         try {
-            DynamicClassLoader loader = new DynamicClassLoader("dynamic_classes");
+            // Changed: Using absolute path to ensure the loader finds the class
+            String dynamicClassesPath = "C:/Users/Giorgi/Desktop/java/HomeWorks";
+            DynamicClassLoader loader = new DynamicClassLoader(dynamicClassesPath);
+
+            // Changed: Added more detailed error handling
             Class<?> greetingClass = loader.loadClass("dynamic_classes.Greeting");
             Object instance = greetingClass.getDeclaredConstructor().newInstance();
             Method greetMethod = greetingClass.getMethod("greet", String.class);
             greetMethod.invoke(instance, customer.getName());
         } catch (Exception e) {
-            System.out.println("Greeting unavailable: " + e.getMessage());
+            // Changed: Fallback to default greeting if dynamic loading fails
+            System.out.println("Welcome, " + customer.getName() + "! We're glad to have you here.");
+            System.err.println("Debug: Dynamic greeting failed - " + e.getMessage());
         }
     }
 }
