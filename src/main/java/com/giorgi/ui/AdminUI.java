@@ -3,8 +3,6 @@ package com.giorgi.ui;
 import com.giorgi.model.*;
 import com.giorgi.service.ReservationService;
 import com.giorgi.service.WorkspaceService;
-
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Scanner;
@@ -56,17 +54,17 @@ public class AdminUI {
 
     private void addWorkspace() {
         try {
-            System.out.print("Enter Workspace ID (integer): ");
-            int id = Integer.parseInt(scanner.nextLine());
-
             System.out.print("Enter price per hour: ");
             BigDecimal price = new BigDecimal(scanner.nextLine());
 
-            Workspace ws = new Workspace(id, price, true);
+            Workspace ws = new Workspace();
+            ws.setPricePerHour(price);
+            ws.setAvailable(true);
+
             workspaceService.addWorkspace(ws);
-            System.out.println("Workspace added successfully.");
+            System.out.println("Workspace added successfully with ID: " + ws.getId());
         } catch (NumberFormatException e) {
-            System.out.println("Invalid input! Please enter numeric values for ID and price.");
+            System.out.println("Invalid input! Please enter a valid price.");
         } catch (Exception e) {
             System.out.println("Error occurred while adding workspace: " + e.getMessage());
         }
@@ -79,7 +77,7 @@ public class AdminUI {
 
             boolean removed = workspaceService.removeWorkspaceById(id);
             if (removed) {
-                System.out.println("Workspace removed.");
+                System.out.println("Workspace removed successfully.");
             } else {
                 System.out.println("Workspace with given ID not found.");
             }
@@ -97,8 +95,12 @@ public class AdminUI {
             System.out.println("No reservations found.");
         } else {
             for (Reservation res : reservations) {
-                System.out.println(res);
-                System.out.println("$$$$$$$$$$$$$$$$$$$$$$");
+                System.out.println("ID: " + res.getId());
+                System.out.println("Customer: " + res.getCustomer().getName());
+                System.out.println("Workspace ID: " + res.getWorkspace().getId());
+                System.out.println("Start: " + res.getStartTime());
+                System.out.println("End: " + res.getEndTime());
+                System.out.println("--------------------");
             }
         }
     }

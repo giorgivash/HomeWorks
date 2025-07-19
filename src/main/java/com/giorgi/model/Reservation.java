@@ -1,33 +1,48 @@
 package com.giorgi.model;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "reservations")
 public class Reservation {
-    private final int reservationId;
-    private final Workspace workspace;
-    private final Customer customer;
-    private final LocalDateTime startTime;
-    private final LocalDateTime endTime;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
 
+    @ManyToOne
+    @JoinColumn(name = "customer_id", nullable = false)
+    private Customer customer;
+
+    @ManyToOne
+    @JoinColumn(name = "workspace_id", nullable = false)
+    private Workspace workspace;
+
+    @Column(name = "start_time", nullable = false)
+    private LocalDateTime startTime;
+
+    @Column(name = "end_time", nullable = false)
+    private LocalDateTime endTime;
+
+    public Reservation() {}
 
     private Reservation(Builder builder) {
-        this.reservationId = builder.reservationId;
-        this.workspace = builder.workspace;
         this.customer = builder.customer;
+        this.workspace = builder.workspace;
         this.startTime = builder.startTime;
         this.endTime = builder.endTime;
     }
 
-    public int getReservationId() {
-        return reservationId;
-    }
-
-    public Workspace getWorkspace() {
-        return workspace;
+    public Integer getId() {
+        return id;
     }
 
     public Customer getCustomer() {
         return customer;
+    }
+
+    public Workspace getWorkspace() {
+        return workspace;
     }
 
     public LocalDateTime getStartTime() {
@@ -38,36 +53,28 @@ public class Reservation {
         return endTime;
     }
 
-
     @Override
     public String toString() {
-        return "Reservation ID: " + reservationId + "\n" +
-                "Customer: " + customer.getName() + "\n" +
-                "Workspace ID: " + workspace.getId() + "\n" +
-                "Start: " + startTime + "\n" +
-                "End: " + endTime;
+        return "Reservation ID: " + id + "\n" +
+               "Customer: " + customer.getName() + "\n" +
+               "Workspace ID: " + workspace.getId() + "\n" +
+               "Start: " + startTime + "\n" +
+               "End: " + endTime;
     }
 
-
     public static class Builder {
-        private int reservationId;
-        private Workspace workspace;
         private Customer customer;
+        private Workspace workspace;
         private LocalDateTime startTime;
         private LocalDateTime endTime;
 
-        public Builder setId(int reservationId) {
-            this.reservationId = reservationId;
+        public Builder setCustomer(Customer customer) {
+            this.customer = customer;
             return this;
         }
 
         public Builder setWorkspace(Workspace workspace) {
             this.workspace = workspace;
-            return this;
-        }
-
-        public Builder setCustomer(Customer customer) {
-            this.customer = customer;
             return this;
         }
 

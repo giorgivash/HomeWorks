@@ -1,12 +1,18 @@
 package com.giorgi.model;
 
-public class Admin extends User {
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 
-    public Admin(String name, int id){
-        super(name, id);
+@Entity
+@Table(name = "admins")
+public class Admin extends User {
+    public Admin() {}
+
+    public Admin(String name) {
+        super(name);
     }
 
-
+    @Override
     public void showMenu() {
         System.out.println("\n--- Admin Menu ---");
         System.out.println("1. Add a new coworking space");

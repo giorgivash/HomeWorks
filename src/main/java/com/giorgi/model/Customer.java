@@ -1,12 +1,19 @@
 package com.giorgi.model;
 
-public class Customer extends User{
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 
-    public Customer(String name, int id){
-        super(name, id);
+@Entity
+@Table(name = "customers")
+public class Customer extends User {
+    public Customer() {}
+
+    public Customer(String name) {
+        super(name);
     }
 
-    public void showMenu(){
+    @Override
+    public void showMenu() {
         System.out.println("\n--- Customer Menu ---");
         System.out.println("1. Browse available spaces");
         System.out.println("2. Make a reservation");
@@ -14,7 +21,4 @@ public class Customer extends User{
         System.out.println("4. Cancel a reservation");
         System.out.println("5. Exit to main menu");
     }
-
-
-
 }
