@@ -1,88 +1,141 @@
 package com.giorgi.service;
 
+import com.giorgi.config.DBConnector;
 import com.giorgi.model.Workspace;
-import java.io.*;
+
 import java.math.BigDecimal;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class WorkspaceService {
-    private final Map<Integer, Workspace> workspacesMap = new HashMap<>();
-    private final PriorityQueue<Workspace> workspacesByPrice = new PriorityQueue<>(
-            Comparator.comparing(Workspace::getPricePerHour)
-    );
-    private static final String FILE_NAME = "workspaces.txt";
-
     public void addWorkspace(Workspace workspace) {
-        workspacesMap.put(workspace.getId(), workspace);
-        workspacesByPrice.add(workspace);
-        saveWorkspacesToFile();
+        // First check if workspace exists
+        if (getWorkspaceById(workspace.getId()).isPresent()) {
+            System.out.println("Workspace with id " + workspace.getId() + " already exists");
+            return;
+        }
+
+        String sql = "INSERT INTO workspaces (id, price_per_hour, available) VALUES (?, ?, ?)";
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, workspace.getId());
+            stmt.setBigDecimal(2, workspace.getPricePerHour());
+            stmt.setBoolean(3, workspace.isAvailable());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Error adding workspace: " + e.getMessage());
+        }
     }
 
     public boolean removeWorkspaceById(int id) {
-        Workspace removed = workspacesMap.remove(id);
-        if (removed != null) {
-            workspacesByPrice.remove(removed);
-            saveWorkspacesToFile();
-            return true;
+        String sql = "DELETE FROM workspaces WHERE id = ?";
+
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            return stmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error removing workspace: " + e.getMessage());
+            return false;
         }
-        return false;
     }
 
     public List<Workspace> getAllWorkspaces() {
-        return new ArrayList<>(workspacesMap.values());
+        List<Workspace> workspaces = new ArrayList<>();
+        String sql = "SELECT * FROM workspaces";
+
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Workspace ws = new Workspace(
+                        rs.getInt("id"),
+                        rs.getBigDecimal("price_per_hour"),
+                        rs.getBoolean("available")
+                );
+                workspaces.add(ws);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error fetching all workspaces: " + e.getMessage());
+        }
+
+        return workspaces;
     }
 
     public List<Workspace> getAvailableWorkspaces() {
-        return workspacesMap.values().stream()
-                .filter(Workspace::isAvailable)
-                .collect(Collectors.toList());
+        List<Workspace> available = new ArrayList<>();
+        String sql = "SELECT * FROM workspaces WHERE available = true";
+
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Workspace ws = new Workspace(
+                        rs.getInt("id"),
+                        rs.getBigDecimal("price_per_hour"),
+                        rs.getBoolean("available")
+                );
+                available.add(ws);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error fetching available workspaces: " + e.getMessage());
+        }
+
+        return available;
     }
 
-    public Optional<Workspace> getWorkspaceById(int workspaceId) {
-        return Optional.ofNullable(workspacesMap.get(workspaceId));
+    public Optional<Workspace> getWorkspaceById(int id) {
+        String sql = "SELECT * FROM workspaces WHERE id = ?";
+
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                Workspace ws = new Workspace(
+                        rs.getInt("id"),
+                        rs.getBigDecimal("price_per_hour"),
+                        rs.getBoolean("available")
+                );
+                return Optional.of(ws);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error fetching workspace by ID: " + e.getMessage());
+        }
+
+        return Optional.empty();
     }
 
     public Workspace getCheapestAvailableWorkspace() {
-        return workspacesByPrice.stream()
-                .filter(Workspace::isAvailable)
-                .findFirst()
-                .orElse(null);
-    }
+        String sql = "SELECT * FROM workspaces WHERE available = true ORDER BY price_per_hour ASC LIMIT 1";
 
-    public void saveWorkspacesToFile() {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
-            workspacesMap.values().forEach(ws -> {
-                try {
-                    writer.write(ws.getId() + "," + ws.getPricePerHour() + "," + ws.isAvailable());
-                    writer.newLine();
-                } catch (IOException e) {
-                    System.err.println("Error writing workspace: " + e.getMessage());
-                }
-            });
-        } catch (IOException e) {
-            System.err.println("Error saving workspaces to file: " + e.getMessage());
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            if (rs.next()) {
+                return new Workspace(
+                        rs.getInt("id"),
+                        rs.getBigDecimal("price_per_hour"),
+                        rs.getBoolean("available")
+                );
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error fetching cheapest available workspace: " + e.getMessage());
         }
-    }
 
-    public void loadWorkspacesFromFile() {
-        File file = new File(FILE_NAME);
-        if (!file.exists()) return;
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-            reader.lines()
-                    .map(line -> line.split(","))
-                    .filter(parts -> parts.length == 3)
-                    .forEach(parts -> {
-                        int id = Integer.parseInt(parts[0]);
-                        BigDecimal price = new BigDecimal(parts[1]);
-                        boolean available = Boolean.parseBoolean(parts[2]);
-                        Workspace ws = new Workspace(id, price, available);
-                        workspacesMap.put(id, ws);
-                        workspacesByPrice.add(ws);
-                    });
-        } catch (IOException | NumberFormatException e) {
-            System.err.println("Error loading workspaces from file: " + e.getMessage());
-        }
+        return null;
     }
 }
