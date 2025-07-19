@@ -1,4 +1,4 @@
-package com.giorgi.model;
+package com.giorgi.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
