@@ -1,6 +1,8 @@
-package com.giorgi.model;
+package com.giorgi.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.FutureOrPresent;
 import java.time.LocalDateTime;
 
 @Entity
@@ -10,18 +12,20 @@ public class Reservation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workspace_id", nullable = false)
     private Workspace workspace;
 
     @Column(name = "start_time", nullable = false)
+    @FutureOrPresent
     private LocalDateTime startTime;
 
     @Column(name = "end_time", nullable = false)
+    @Future
     private LocalDateTime endTime;
 
     public Reservation() {}
@@ -56,10 +60,10 @@ public class Reservation {
     @Override
     public String toString() {
         return "Reservation ID: " + id + "\n" +
-               "Customer: " + customer.getName() + "\n" +
-               "Workspace ID: " + workspace.getId() + "\n" +
-               "Start: " + startTime + "\n" +
-               "End: " + endTime;
+                "Customer: " + customer.getName() + "\n" +
+                "Workspace ID: " + workspace.getId() + "\n" +
+                "Start: " + startTime + "\n" +
+                "End: " + endTime;
     }
 
     public static class Builder {

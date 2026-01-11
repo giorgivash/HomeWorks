@@ -1,71 +1,54 @@
 package com.giorgi.service;
 
-import com.giorgi.config.JPAUtil;
-import com.giorgi.model.Workspace;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
-import java.math.BigDecimal;
+import com.giorgi.entity.Workspace;
+import com.giorgi.model.WorkspaceModel;
+import com.giorgi.repository.WorkspaceRepository;
+import com.giorgi.util.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 
+@Service
+@Transactional
 public class WorkspaceService {
-    public void addWorkspace(Workspace workspace) {
-        EntityManager em = JPAUtil.getEntityManager();
-        try {
-            em.getTransaction().begin();
-            em.persist(workspace);
-            em.getTransaction().commit();
-        } finally {
-            em.close();
-        }
+
+    private final WorkspaceRepository workspaceRepository;
+
+    @Autowired
+    public WorkspaceService(WorkspaceRepository workspaceRepository) {
+        this.workspaceRepository = workspaceRepository;
+    }
+
+    public void addWorkspace(WorkspaceModel workspaceModel) {
+        Workspace workspace = ModelMapper.toEntity(workspaceModel);
+        workspaceRepository.save(workspace);
     }
 
     public boolean removeWorkspaceById(Integer id) {
-        EntityManager em = JPAUtil.getEntityManager();
-        try {
-            em.getTransaction().begin();
-            Workspace workspace = em.find(Workspace.class, id);
-            if (workspace != null) {
-                em.remove(workspace);
-                em.getTransaction().commit();
-                return true;
-            }
-            return false;
-        } finally {
-            em.close();
+        if (workspaceRepository.existsById(id)) {
+            workspaceRepository.deleteById(id);
+            return true;
         }
+        return false;
     }
 
-    public List<Workspace> getAllWorkspaces() {
-        EntityManager em = JPAUtil.getEntityManager();
-        try {
-            TypedQuery<Workspace> query = em.createQuery(
-                    "SELECT w FROM Workspace w", Workspace.class);
-            return query.getResultList();
-        } finally {
-            em.close();
-        }
+    public List<WorkspaceModel> getAllWorkspaces() {
+        return workspaceRepository.findAll().stream()
+                .map(ModelMapper::toModel)
+                .toList();
     }
 
-    public Optional<Workspace> getWorkspaceById(Integer id) {
-        EntityManager em = JPAUtil.getEntityManager();
-        try {
-            Workspace workspace = em.find(Workspace.class, id);
-            return Optional.ofNullable(workspace);
-        } finally {
-            em.close();
-        }
+    public Optional<WorkspaceModel> getWorkspaceById(Integer id) {
+        return workspaceRepository.findById(id)
+                .map(ModelMapper::toModel);
     }
 
-    public List<Workspace> getAvailableWorkspaces() {
-        EntityManager em = JPAUtil.getEntityManager();
-        try {
-            TypedQuery<Workspace> query = em.createQuery(
-                    "SELECT w FROM Workspace w WHERE w.available = true",
-                    Workspace.class);
-            return query.getResultList();
-        } finally {
-            em.close();
-        }
+    public List<WorkspaceModel> getAvailableWorkspaces() {
+        return workspaceRepository.findByAvailableTrue().stream()
+                .map(ModelMapper::toModel)
+                .toList();
     }
 }

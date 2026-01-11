@@ -1,4 +1,4 @@
-package com.giorgi.model;
+package com.giorgi.entity;
 
 import jakarta.persistence.*;
 import java.util.Objects;
@@ -9,7 +9,7 @@ public abstract class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     protected Integer id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     protected String name;
 
     public User() {}
@@ -39,8 +39,8 @@ public abstract class User {
     @Override
     public String toString() {
         return "ID = " + id + "\n" +
-               "name = " + name + "\n" +
-               "Role = " + this.getClass().getSimpleName();
+                "name = " + name + "\n" +
+                "Role = " + this.getClass().getSimpleName();
     }
 
     @Override

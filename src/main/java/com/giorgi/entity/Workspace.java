@@ -1,6 +1,7 @@
-package com.giorgi.model;
+package com.giorgi.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 
 @Entity
@@ -10,9 +11,11 @@ public class Workspace {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "price_per_hour", precision = 10, scale = 2)
+    @Column(name = "price_per_hour", nullable = false, precision = 10, scale = 2)
+    @Positive(message = "Price must be positive")
     private BigDecimal pricePerHour;
 
+    @Column(nullable = false)
     private boolean available;
 
     public Workspace() {}
@@ -44,7 +47,7 @@ public class Workspace {
     @Override
     public String toString() {
         return "Workspace ID: " + id + "\n" +
-               "Price per hour: $" + pricePerHour + "\n" +
-               "Available: " + (available ? "Yes" : "No");
+                "Price per hour: $" + pricePerHour + "\n" +
+                "Available: " + (available ? "Yes" : "No");
     }
 }
